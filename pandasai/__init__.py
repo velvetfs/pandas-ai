@@ -172,7 +172,7 @@ Code generated:
                 isinstance(node, ast.Expr)
                 and isinstance(node.value, ast.Call)
                 and isinstance(node.value.func, ast.Attribute)
-                and node.value.func.attr == "plot"
+                and node.value.func.attr == "show"
             )
         ]
         new_tree = ast.Module(body=new_body)
@@ -208,6 +208,7 @@ Code running:
             while count < self._max_retries:
                 try:
                     # Execute the code
+                    loc = {}
                     exec(
                         code_to_run,
                         {
@@ -216,6 +217,7 @@ Code running:
                             "plt": plt,
                             "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
                         },
+                        loc,
                     )
                     code = code_to_run
                     break
@@ -254,6 +256,7 @@ Code running:
                     "df": data_frame,
                     "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
                 },
+                loc,
             )
         except Exception:  # pylint: disable=W0718
             return captured_output
