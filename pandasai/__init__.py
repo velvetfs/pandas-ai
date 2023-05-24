@@ -40,17 +40,9 @@ class PandasAI:
     last_run_code: Optional[str] = None
     code_output: Optional[str] = None
 
-    def __init__(
-        self,
-        llm=None,
-        conversational=True,
-        verbose=False,
-        enforce_privacy=False,
-    ):
+    def __init__(self, llm=None, conversational=True, verbose=False, enforce_privacy=False):
         if llm is None:
-            raise LLMNotFoundError(
-                "An LLM should be provided to instantiate a PandasAI instance"
-            )
+            raise LLMNotFoundError("An LLM should be provided to instantiate a PandasAI instance")
         self._llm = llm
         self._is_conversational_answer = conversational
         self._verbose = verbose
@@ -115,11 +107,7 @@ Code generated:
         if show_code and self._in_notebook:
             self.notebook.create_new_cell(code)
 
-        answer = self.run_code(
-            code,
-            data_frame,
-            use_error_correction_framework=use_error_correction_framework,
-        )
+        answer = self.run_code(code, data_frame, use_error_correction_framework=use_error_correction_framework)
         self.code_output = answer
         self.log(f"Answer: {answer}")
 
@@ -141,12 +129,7 @@ Code generated:
     ) -> str:
         """Run the LLM with the given prompt"""
         return self.run(
-            data_frame,
-            prompt,
-            is_conversational_answer,
-            show_code,
-            anonymize_df,
-            use_error_correction_framework,
+            data_frame, prompt, is_conversational_answer, show_code, anonymize_df, use_error_correction_framework
         )
 
     def remove_unsafe_imports(self, code: str) -> str:
@@ -172,9 +155,24 @@ Code generated:
             node
             for node in tree.body
             if not (
-                isinstance(node, ast.Assign)
-                and isinstance(node.targets[0], ast.Name)
-                and node.targets[0].id == "df"
+                isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "df"
+            )
+        ]
+        new_tree = ast.Module(body=new_body)
+        return astor.to_source(new_tree).strip()
+
+    def remove_plots(self, code: str) -> str:
+        """Remove plots from the code"""
+
+        tree = ast.parse(code)
+        new_body = [
+            node
+            for node in tree.body
+            if not (
+                isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Attribute)
+                and node.value.func.attr == "plot"
             )
         ]
         new_tree = ast.Module(body=new_body)
@@ -186,14 +184,10 @@ Code generated:
         # TODO: avoid iterating over the code twice # pylint: disable=W0511
         code = self.remove_unsafe_imports(code)
         code = self.remove_df_overwrites(code)
+        code = self.remove_plots(code)
         return code
 
-    def run_code(
-        self,
-        code: str,
-        data_frame: pd.DataFrame,
-        use_error_correction_framework: bool = True,
-    ) -> str:
+    def run_code(self, code: str, data_frame: pd.DataFrame, use_error_correction_framework: bool = True) -> str:
         # pylint: disable=W0122 disable=W0123 disable=W0702:bare-except
         """Run the code in the current context and return the result"""
 
@@ -220,12 +214,7 @@ Code running:
                             "pd": pd,
                             "df": data_frame,
                             "plt": plt,
-                            "__builtins__": {
-                                **{
-                                    builtin: __builtins__[builtin]
-                                    for builtin in WHITELISTED_BUILTINS
-                                },
-                            },
+                            "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
                         },
                     )
                     code = code_to_run
@@ -244,9 +233,7 @@ Code running:
                         num_columns=self._original_instructions["num_columns"],
                         rows_to_display=self._original_instructions["rows_to_display"],
                     )
-                    code_to_run = self._llm.generate_code(
-                        error_correcting_instruction, ""
-                    )
+                    code_to_run = self._llm.generate_code(error_correcting_instruction, "")
 
         captured_output = output.getvalue()
 
@@ -265,12 +252,7 @@ Code running:
                 {
                     "pd": pd,
                     "df": data_frame,
-                    "__builtins__": {
-                        **{
-                            builtin: __builtins__[builtin]
-                            for builtin in WHITELISTED_BUILTINS
-                        },
-                    },
+                    "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
                 },
             )
         except Exception:  # pylint: disable=W0718
