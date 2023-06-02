@@ -79,10 +79,12 @@ class PandasAI:
         if anonymize_df:
             df_head = anonymize_dataframe_head(df_head)
 
+        df_csv_head = df_head.to_csv(index=False)
+
         code = self._llm.generate_code(
             GeneratePythonCodePrompt(
                 prompt=prompt,
-                df_head=df_head,
+                df_csv_head=df_csv_head,
                 num_rows=data_frame.shape[0],
                 num_columns=data_frame.shape[1],
                 rows_to_display=rows_to_display,
