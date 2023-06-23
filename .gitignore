@@ -5,6 +5,9 @@
 __pycache__
 .pytest_cache
 
+# ruff cache
+.ruff_cache
+
 # macOS
 .DS_Store
 
@@ -23,3 +26,15 @@ pandasai.egg-info
 # pycharm
 .idea/
 .idea
+
+# cache
+cache/
+
+# exports
+exports/
+
+# logs
+*.log
+
+# vscode
+.vscode

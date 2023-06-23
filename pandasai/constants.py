@@ -1,12 +1,15 @@
 """
 Constants used in the pandasai package.
+
+It includes Start & End Code tags, Whitelisted Python Packages and
+While List Builtin Methods.
+
 """
 
 START_CODE_TAG = "<startCode>"
 END_CODE_TAG = "<endCode>"
-WHITELISTED_LIBRARIES = [
-    "numpy",
-]
+
+# List of Python builtin libraries that are added to the environment by default.
 WHITELISTED_BUILTINS = [
     "abs",
     "all",
@@ -71,4 +74,21 @@ WHITELISTED_BUILTINS = [
     "type",
     "vars",
     "zip",
+]
+
+# List of Python packages that are whitelisted for import in generated code
+WHITELISTED_LIBRARIES = [
+    "sklearn",
+    "statsmodels",
+    "seaborn",
+    "plotly",
+    "ggplot",
+    "matplotlib",
+    "numpy",
+    "datetime",
+    "json",
+    "io",
+    "base64",
+    "scipy",
+    "streamlit",
 ]

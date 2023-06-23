@@ -1,4 +1,12 @@
-"""OpenAI LLM"""
+"""OpenAI LLM API
+
+This module is to run the OpenAI API using OpenAI API.
+
+Example:
+    Use below example to call OpenAI Model
+
+    >>> from pandasai.llm.openai import OpenAI
+"""
 
 import os
 from typing import Any, Dict, Optional
@@ -7,21 +15,32 @@ import openai
 from dotenv import load_dotenv
 
 from ..exceptions import APIKeyNotFoundError, UnsupportedOpenAIModelError
+from ..prompts.base import Prompt
 from .base import BaseOpenAI
 
 load_dotenv()
 
 
 class OpenAI(BaseOpenAI):
-    """OpenAI LLM"""
+    """OpenAI LLM using BaseOpenAI Class.
+
+    An API call to OpenAi API is sent and response is recorded and returned.
+    The default chat model is **gpt-3.5-turbo** while **text-davinci-003** is only
+    supported completion model.
+    The list of supported Chat models includes ["gpt-4", "gpt-4-0314", "gpt-4-32k",
+     "gpt-4-32k-0314","gpt-3.5-turbo", "gpt-3.5-turbo-0301"].
+
+    """
 
     _supported_chat_models = [
         "gpt-4",
-        "gpt-4-0314",
+        "gpt-4-0613",
         "gpt-4-32k",
-        "gpt-4-32k-0314",
+        "gpt-4-32k-0613",
         "gpt-3.5-turbo",
-        "gpt-3.5-turbo-0301",
+        "gpt-3.5-turbo-16k",
+        "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-16k-0613",
     ]
     _supported_completion_models = ["text-davinci-003"]
 
@@ -32,6 +51,15 @@ class OpenAI(BaseOpenAI):
         api_token: Optional[str] = None,
         **kwargs,
     ):
+        """
+        __init__ method of OpenAI Class
+        Args:
+            api_token (str): API Token fro OpenAI platform.
+            **kwargs: Extended Parameters inferred from BaseOpenAI class
+
+        Returns: Response generated from OpenAI API
+        """
+
         self.api_token = api_token or os.getenv("OPENAI_API_KEY") or None
         if self.api_token is None:
             raise APIKeyNotFoundError("OpenAI API key is required")
@@ -47,12 +75,12 @@ class OpenAI(BaseOpenAI):
             "model": self.model,
         }
 
-    def call(self, instruction: str, value: str, suffix: str = "") -> str:
+    def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
         """
         Call the OpenAI LLM.
 
         Args:
-            instruction (str): Instruction to pass
+            instruction (Prompt): Instruction to pass
             value (str): Value to pass
             suffix (str): Suffix to pass
 

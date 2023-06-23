@@ -1,4 +1,18 @@
-""" Base class to implement a new LLM. """
+""" Base class to implement a new LLM
+
+This module is the base class to integrate the various LLMs API. This module also
+includes the Base LLM classes for OpenAI, HuggingFace and Google PaLM.
+
+Example:
+
+    ```
+    from .base import BaseOpenAI
+
+    class CustomLLM(BaseOpenAI):
+
+        Custom Class Starts here!!
+    ```
+"""
 
 import ast
 import re
@@ -7,7 +21,6 @@ from typing import Any, Dict, Optional
 
 import openai
 import requests
-from google import generativeai
 
 from ..constants import END_CODE_TAG, START_CODE_TAG
 from ..exceptions import (
@@ -15,12 +28,23 @@ from ..exceptions import (
     MethodNotImplementedError,
     NoCodeFoundError,
 )
+from ..helpers._optional import import_dependency
+from ..prompts.base import Prompt
 
 
 class LLM:
     """Base class to implement a new LLM."""
 
     last_prompt: Optional[str] = None
+
+    def is_pandasai_llm(self) -> bool:
+        """
+        Return True if the LLM is from pandasAI.
+
+        Returns:
+            bool: True if the LLM is from pandasAI
+        """
+        return True
 
     @property
     def type(self) -> str:
@@ -54,6 +78,14 @@ class LLM:
         return code
 
     def _is_python_code(self, string):
+        """
+        Return True if it is valid python code.
+        Args:
+            string (str):
+
+        Returns (bool): True if Python Code otherwise False
+
+        """
         try:
             ast.parse(string)
             return True
@@ -91,12 +123,12 @@ class LLM:
         return code
 
     @abstractmethod
-    def call(self, instruction: str, value: str, suffix: str = "") -> str:
+    def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
         """
         Execute the LLM with given prompt.
 
         Args:
-            instruction (str): Prompt
+            instruction (Prompt): Prompt
             value (str): Value
             suffix (str, optional): Suffix. Defaults to "".
 
@@ -105,7 +137,7 @@ class LLM:
         """
         raise MethodNotImplementedError("Call method has not been implemented")
 
-    def generate_code(self, instruction: str, prompt: str) -> str:
+    def generate_code(self, instruction: Prompt, prompt: str) -> str:
         """
         Generate the code based on the instruction and the given prompt.
 
@@ -116,7 +148,10 @@ class LLM:
 
 
 class BaseOpenAI(LLM, ABC):
-    """Base class to implement a new OpenAI LLM"""
+    """Base class to implement a new OpenAI LLM
+    LLM base class, this class is extended to be used with OpenAI API.
+
+    """
 
     api_token: str
     temperature: float = 0
@@ -127,6 +162,16 @@ class BaseOpenAI(LLM, ABC):
     stop: Optional[str] = None
 
     def _set_params(self, **kwargs):
+        """
+        Set Parameters
+        Args:
+            **kwargs: ["model", "engine", "deployment_id", "temperature","max_tokens",
+            "top_p", "frequency_penalty", "presence_penalty", "stop", ]
+
+        Returns: None
+
+        """
+
         valid_params = [
             "model",
             "engine",
@@ -144,7 +189,13 @@ class BaseOpenAI(LLM, ABC):
 
     @property
     def _default_params(self) -> Dict[str, Any]:
-        """Get the default parameters for calling OpenAI API"""
+        """
+        Get the default parameters for calling OpenAI API
+
+        Returns (Dict): A dict of OpenAi API parameters
+
+        """
+
         return {
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
@@ -201,7 +252,11 @@ class BaseOpenAI(LLM, ABC):
 
 
 class HuggingFaceLLM(LLM):
-    """Base class to implement a new Hugging Face LLM."""
+    """Base class to implement a new Hugging Face LLM.
+
+    LLM base class is extended to be used with HuggingFace LLM Modes APIs
+
+    """
 
     last_prompt: Optional[str] = None
     api_token: str
@@ -213,7 +268,14 @@ class HuggingFaceLLM(LLM):
         return "huggingface-llm"
 
     def query(self, payload):
-        """Query the API"""
+        """
+        Query the HF API
+        Args:
+            payload: A JSON form payload
+
+        Returns: Generated Response
+
+        """
 
         headers = {"Authorization": f"Bearer {self.api_token}"}
 
@@ -223,10 +285,20 @@ class HuggingFaceLLM(LLM):
 
         return response.json()[0]["generated_text"]
 
-    def call(self, instruction: str, value: str, suffix: str = "") -> str:
-        """Call the LLM"""
+    def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
+        """
+        A call method of HuggingFaceLLM class.
+        Args:
+            instruction (object): A prompt object
+            value (str):
+            suffix (str):
 
-        payload = instruction + value + suffix
+        Returns (str): A string response
+
+        """
+
+        prompt = str(instruction)
+        payload = prompt + value + suffix
 
         # sometimes the API doesn't return a valid response, so we retry passing the
         # output generated from the previous call as the input
@@ -237,12 +309,15 @@ class HuggingFaceLLM(LLM):
                 break
 
         # replace instruction + value from the inputs to avoid showing it in the output
-        output = response.replace(instruction + value + suffix, "")
+        output = response.replace(prompt + value + suffix, "")
         return output
 
 
 class BaseGoogle(LLM):
-    """Base class to implement a new Google LLM"""
+    """Base class to implement a new Google LLM
+
+    LLM base class is extended to be used with Google Palm API.
+    """
 
     genai: Any
     temperature: Optional[float] = 0
@@ -251,16 +326,37 @@ class BaseGoogle(LLM):
     max_output_tokens: Optional[int] = None
 
     def _configure(self, api_key: str):
+        """
+        Configure Google Palm API Key
+        Args:
+            api_key (str): A string of API keys generated from Google Cloud
+
+        Returns:
+
+        """
+
         if not api_key:
             raise APIKeyNotFoundError("Google Palm API key is required")
 
-        generativeai.configure(api_key=api_key)
-        self.genai = generativeai
+        err_msg = "Install google-generativeai >= 0.1 for Google Palm API"
+        genai = import_dependency("google.generativeai", extra=err_msg)
+
+        genai.configure(api_key=api_key)
+        self.genai = genai
 
     def _valid_params(self):
         return ["temperature", "top_p", "top_k", "max_output_tokens"]
 
     def _set_params(self, **kwargs):
+        """
+        Set Parameters
+        Args:
+            **kwargs: ["temperature", "top_p", "top_k", "max_output_tokens"]
+
+        Returns:
+
+        """
+
         valid_params = self._valid_params()
         for key, value in kwargs.items():
             if key in valid_params:
@@ -294,12 +390,12 @@ class BaseGoogle(LLM):
         """
         raise MethodNotImplementedError("method has not been implemented")
 
-    def call(self, instruction: str, value: str, suffix: str = "") -> str:
+    def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
         """
         Call the Google LLM.
 
         Args:
-            instruction (str): Instruction to pass
+            instruction (object): Instruction to pass
             value (str): Value to pass
             suffix (str): Suffix to pass
 

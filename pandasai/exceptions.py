@@ -1,7 +1,12 @@
-"""PandasAI's custom exceptions."""
+"""PandasAI's custom exceptions.
+
+This module contains the implementation of Custom Exceptions.
+
+"""
 
 
 class APIKeyNotFoundError(Exception):
+
     """
     Raised when the API key is not defined/declared.
 
@@ -44,3 +49,25 @@ class UnsupportedOpenAIModelError(Exception):
     Args:
         Exception (Exception): UnsupportedOpenAIModelError
     """
+
+
+class BadImportError(Exception):
+    """
+    Raised when a library not in the whitelist is imported.
+
+    Args:
+        Exception (Exception): BadImportError
+    """
+
+    def __init__(self, library_name):
+        """
+        __init__ method of BadImportError Class
+
+        Args:
+            library_name (str): Name of the library that is not in the whitelist.
+        """
+        self.library_name = library_name
+        super().__init__(
+            f"Generated code includes import of {library_name} which"
+            " is not in whitelist."
+        )

@@ -23,7 +23,7 @@ We use `poetry` as our package manager. You can install poetry by following the 
 Please DO NOT use pip or conda to install the dependencies. Instead, use poetry:
 
 ```bash
-poetry install
+poetry install --all-extras
 ```
 
 ### 📌 Pre-commit
@@ -36,10 +36,10 @@ pre-commit install
 
 ### 🧹 Linting
 
-We use `pylint` to lint our code. You can run the linter by running the following command:
+We use `ruff` to lint our code. You can run the linter by running the following command:
 
 ```bash
-pylint pandasai examples
+ruff pandasai examples
 ```
 
 Make sure that the linter does not report any errors or warnings before submitting a pull request.
@@ -49,7 +49,7 @@ Make sure that the linter does not report any errors or warnings before submitti
 We use `pytest` to test our code. You can run the tests by running the following command:
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 Make sure that all tests pass before submitting a pull request.
