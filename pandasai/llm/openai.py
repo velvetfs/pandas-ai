@@ -44,13 +44,9 @@ class OpenAI(BaseOpenAI):
     ]
     _supported_completion_models = ["text-davinci-003"]
 
-    model: str = "gpt-3.5-turbo"
+    model: str = "gpt-4"
 
-    def __init__(
-        self,
-        api_token: Optional[str] = None,
-        **kwargs,
-    ):
+    def __init__(self, api_token: Optional[str] = None, **kwargs):
         """
         __init__ method of OpenAI Class
         Args:
@@ -70,10 +66,7 @@ class OpenAI(BaseOpenAI):
     @property
     def _default_params(self) -> Dict[str, Any]:
         """Get the default parameters for calling OpenAI API"""
-        return {
-            **super()._default_params,
-            "model": self.model,
-        }
+        return {**super()._default_params, "model": self.model}
 
     def call(self, instruction: Prompt, value: str, suffix: str = "") -> str:
         """
