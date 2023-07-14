@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from .constants import WHITELISTED_BUILTINS, WHITELISTED_LIBRARIES
-from .exceptions import LLMNotFoundError
+from .exceptions import LLMNotFoundError, MaxRetriesExceededError
 from .helpers.anonymizer import anonymize_dataframe_head
 from .helpers.notebook import Notebook
 from .llm.base import LLM
 from .prompts.correct_error_prompt import CorrectErrorPrompt
+from .prompts.correct_wrong_type_prompt import CorrectWrongTypePrompt
 from .prompts.generate_python_code import GeneratePythonCodePrompt
 from .prompts.generate_response import GenerateResponsePrompt
 
@@ -189,7 +190,9 @@ Code generated:
         code = self.remove_plots(code)
         return code
 
-    def run_code(self, code: str, data_frame: pd.DataFrame, use_error_correction_framework: bool = True) -> str:
+    def run_code(
+        self, code: str, data_frame: pd.DataFrame, use_error_correction_framework: bool = True
+    ) -> pd.DataFrame:
         # pylint: disable=W0122 disable=W0123 disable=W0702:bare-except
         """Run the code in the current context and return the result"""
 
@@ -222,7 +225,39 @@ Code running:
                         loc,
                     )
                     code = code_to_run
-                    break
+
+                    # Evaluate the last line and return its value or the captured output
+                    lines = code.strip().split("\n")
+                    last_line = lines[-1].strip()
+
+                    pattern = r"^print\((.*)\)$"
+                    match = re.match(pattern, last_line)
+                    if match:
+                        last_line = match.group(1)
+
+                    last_line_value = eval(
+                        last_line,
+                        {
+                            "pd": pd,
+                            "df": data_frame,
+                            "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
+                        },
+                        loc,
+                    )
+                    if not isinstance(last_line_value, pd.DataFrame):
+                        count += 1
+                        error_correcting_instruction = CorrectWrongTypePrompt(
+                            code=code,
+                            return_type=type(last_line_value),
+                            question=self._original_instructions["question"],
+                            df_head=self._original_instructions["df_head"],
+                            num_rows=self._original_instructions["num_rows"],
+                            num_columns=self._original_instructions["num_columns"],
+                            rows_to_display=self._original_instructions["rows_to_display"],
+                        )
+                        code_to_run = self._llm.generate_code(error_correcting_instruction, "")
+                    else:
+                        return last_line_value
                 except Exception as e:  # pylint: disable=W0718 disable=C0103
                     if not use_error_correction_framework:
                         raise e
@@ -238,30 +273,7 @@ Code running:
                         rows_to_display=self._original_instructions["rows_to_display"],
                     )
                     code_to_run = self._llm.generate_code(error_correcting_instruction, "")
-
-        captured_output = output.getvalue()
-
-        # Evaluate the last line and return its value or the captured output
-        lines = code.strip().split("\n")
-        last_line = lines[-1].strip()
-
-        pattern = r"^print\((.*)\)$"
-        match = re.match(pattern, last_line)
-        if match:
-            last_line = match.group(1)
-
-        try:
-            return eval(
-                last_line,
-                {
-                    "pd": pd,
-                    "df": data_frame,
-                    "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
-                },
-                loc,
-            )
-        except Exception:  # pylint: disable=W0718
-            return captured_output
+        raise MaxRetriesExceededError(f"Maximum number of retries exceeded ({self._max_retries}).")
 
     def log(self, message: str):
         """Log a message"""
