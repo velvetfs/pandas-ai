@@ -67,7 +67,10 @@ class BadImportError(Exception):
             library_name (str): Name of the library that is not in the whitelist.
         """
         self.library_name = library_name
-        super().__init__(
-            f"Generated code includes import of {library_name} which"
-            " is not in whitelist."
-        )
+        super().__init__(f"Generated code includes import of {library_name} which" " is not in whitelist.")
+
+
+class MaxRetriesExceededError(Exception):
+    """
+    Raised when exceeding maximum number of retries.
+    """
