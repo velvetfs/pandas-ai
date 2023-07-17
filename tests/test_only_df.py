@@ -1,10 +1,7 @@
 import pandas as pd
-import pytest
-
-from pandasai import PandasAI
 
 
-def test_date_is_the_index_of_cost_df(pandas_ai: PandasAI):
+def test_date_is_the_index_of_cost_df(pandas_ai):
     cost_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
@@ -15,8 +12,7 @@ def test_date_is_the_index_of_cost_df(pandas_ai: PandasAI):
     assert ai_df.index.name == "date"
 
 
-@pytest.mark.skip(reason="Don't hit the API")
-def test_filter_date(pandas_ai: PandasAI):
+def test_filter_date(pandas_ai):
     cost_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
@@ -24,41 +20,42 @@ def test_filter_date(pandas_ai: PandasAI):
         }
     )
     filtered_df = pandas_ai(cost_df, prompt="Show me the cost for 2020")
-    assert type(filtered_df) == pd.DataFrame
-    assert filtered_df.shape == (2, 2)
+    assert filtered_df.index.name == "date"
+    assert filtered_df.shape == (2, 1)
 
 
-@pytest.mark.skip(reason="Don't hit the API")
 def test_aggregate_rounds(pandas_ai):
     rounds_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
-            "round": [1, 1, 2, 2, 3, 3],
+            "round": [1, 1, 3, 2, 3, 3],
         }
     )
     filtered_df = pandas_ai(rounds_df, prompt="How many investments are made in different rounds?")
-    assert type(filtered_df) == pd.DataFrame
-    assert filtered_df.shape == (3, 2)
-    assert filtered_df.columns.tolist() == ["round", "count"]
-    assert filtered_df["count"].tolist() == [2, 2, 2]
+    assert filtered_df.index.name == "round"
+    assert filtered_df.shape == (3, 1)
+    assert filtered_df.columns.tolist() == ["count"]
+    assert filtered_df.loc[1, "count"] == 2
+    assert filtered_df.loc[2, "count"] == 1
+    assert filtered_df.loc[3, "count"] == 3
 
 
-@pytest.mark.skip(reason="Don't hit the API")
 def test_filter_and_aggregate(pandas_ai):
     rounds_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
-            "round": [1, 1, 2, 2, 3, 3],
+            "round": [1, 1, 1, 2, 3, 3],
         }
     )
     filtered_df = pandas_ai(rounds_df, prompt="How many investments are made in different rounds in 2021?")
-    assert type(filtered_df) == pd.DataFrame
-    assert filtered_df.shape == (2, 2)
-    assert filtered_df.columns.tolist() == ["round", "count"]
-    assert filtered_df["count"].tolist() == [2, 2]
+    assert filtered_df.index.name == "round"
+    assert filtered_df.shape == (3, 1)
+    assert filtered_df.columns.tolist() == ["count"]
+    assert filtered_df.loc[1, "count"] == 1
+    assert filtered_df.loc[2, "count"] == 1
+    assert filtered_df.loc[3, "count"] == 2
 
 
-@pytest.mark.skip(reason="Don't hit the API")
 def test_filter_lots_of_columns(pandas_ai):
     fruits_df = pd.DataFrame(
         {
@@ -75,12 +72,13 @@ def test_filter_lots_of_columns(pandas_ai):
             "mangoes": [1, 2, 3, 4, 5, 6],
         }
     )
-    filtered_df = pandas_ai(fruits_df, prompt="Show me bananas by company sorted low to high")
-    assert type(filtered_df) == pd.DataFrame
-    assert filtered_df.shape == (4, 2)
+    filtered_df = pandas_ai(fruits_df, prompt="Show me total bananas by company sorted low to high")
+    assert filtered_df.index.name == "company"
+    assert filtered_df.shape == (3, 1)
+    assert filtered_df.columns.tolist() == ["bananas"]
+    assert filtered_df["bananas"].tolist() == [5, 7, 11]
 
 
-@pytest.mark.skip(reason="Don't hit the API")
 def test_average_banana(pandas_ai):
     fruits_df = pd.DataFrame(
         {
@@ -98,7 +96,6 @@ def test_average_banana(pandas_ai):
         }
     )
     filtered_df = pandas_ai(fruits_df, prompt="What is the variance of bananas as a percentage per company?")
-    print(filtered_df)
-    assert type(filtered_df) == pd.DataFrame
-    assert filtered_df.shape == (4, 2)
-    assert False
+    assert filtered_df.index.name == "company"
+    assert filtered_df.shape == (3, 1)
+    assert filtered_df.columns.tolist() == ["bananas"]

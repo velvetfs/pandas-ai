@@ -34,7 +34,10 @@ Do not return any code which uses any functions from the `matplotlib` or `seabor
 Do not return any code which uses `.plot` or `.plotting` methods on the dataframe.
 Do not return any code which uses any functions from the `plotly` library.
 Do not attempt to access columns which are not in the original dataframe.
+Explicitly set the dataframe's index to whichever single column is the best index for the dataframe.
+The returned dataframe must have a single index set to the column you chose.
 Always return the resulting dataframe as the last line of your python code.
+If you would return a series, return a dataframe with one column instead.
 Using the provided dataframe, df, return the python code and make sure to prefix the requested python code with {START_CODE_TAG} exactly and suffix the code with {END_CODE_TAG} exactly to get the answer to the following question:
 """  # noqa: E501
 

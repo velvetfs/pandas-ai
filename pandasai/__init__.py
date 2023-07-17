@@ -129,7 +129,7 @@ Code generated:
         show_code: bool = False,
         anonymize_df: bool = True,
         use_error_correction_framework: bool = True,
-    ) -> str:
+    ) -> pd.DataFrame:
         """Run the LLM with the given prompt"""
         return self.run(
             data_frame, prompt, is_conversational_answer, show_code, anonymize_df, use_error_correction_framework
@@ -214,7 +214,7 @@ Code running:
                 try:
                     # Execute the code
                     loc = {}
-                    exec(
+                    exec(  # noqa: S102
                         code_to_run,
                         {
                             "pd": pd,
@@ -231,11 +231,10 @@ Code running:
                     last_line = lines[-1].strip()
 
                     pattern = r"^print\((.*)\)$"
-                    match = re.match(pattern, last_line)
-                    if match:
-                        last_line = match.group(1)
+                    if match := re.match(pattern, last_line):
+                        last_line = match[1]
 
-                    last_line_value = eval(
+                    last_line_value = eval(  # noqa: S307, PGH001
                         last_line,
                         {
                             "pd": pd,
@@ -244,23 +243,31 @@ Code running:
                         },
                         loc,
                     )
-                    if not isinstance(last_line_value, pd.DataFrame):
-                        count += 1
-                        error_correcting_instruction = CorrectWrongTypePrompt(
-                            code=code,
-                            return_type=type(last_line_value),
-                            question=self._original_instructions["question"],
-                            df_head=self._original_instructions["df_head"],
-                            num_rows=self._original_instructions["num_rows"],
-                            num_columns=self._original_instructions["num_columns"],
-                            rows_to_display=self._original_instructions["rows_to_display"],
-                        )
-                        code_to_run = self._llm.generate_code(error_correcting_instruction, "")
-                    else:
+                    if isinstance(last_line_value, pd.DataFrame):
                         return last_line_value
-                except Exception as e:  # pylint: disable=W0718 disable=C0103
+                    count += 1
+                    error_correcting_instruction = CorrectWrongTypePrompt(
+                        code=code,
+                        return_type=type(last_line_value),
+                        question=self._original_instructions["question"],
+                        df_head=self._original_instructions["df_head"],
+                        num_rows=self._original_instructions["num_rows"],
+                        num_columns=self._original_instructions["num_columns"],
+                        rows_to_display=self._original_instructions["rows_to_display"],
+                    )
+                    code_to_run = self.clean_code(self._llm.generate_code(error_correcting_instruction, ""))
+                    code_to_run = self.clean_code(code)
+                    self.last_run_code = code_to_run
+                    self.log(
+                        f"""
+                             Code running:
+                             ```
+                             {code_to_run}
+                             ```"""
+                    )
+                except Exception as e:  # pylint: disable=W0718 disable=C0103  # noqa: BLE001
                     if not use_error_correction_framework:
-                        raise e
+                        raise e  # noqa: TRY201
 
                     count += 1
                     error_correcting_instruction = CorrectErrorPrompt(
