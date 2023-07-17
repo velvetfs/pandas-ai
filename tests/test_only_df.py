@@ -2,31 +2,41 @@ import pandas as pd
 import pytest
 
 from pandasai import PandasAI
-from pandasai.llm.openai import OpenAI
 
 
-@pytest.mark.skip(reason="Don't hit the API")
-def test_filter_date(pandas_ai):
-    df = pd.DataFrame(
+def test_date_is_the_index_of_cost_df(pandas_ai: PandasAI):
+    cost_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
             "cost": [1, 2, 3, 4, 5, 6],
         }
     )
-    filtered_df = pandas_ai(df, prompt="Show me the cost for 2020")
+    ai_df = pandas_ai(cost_df, prompt="Show me the cost")
+    assert ai_df.index.name == "date"
+
+
+@pytest.mark.skip(reason="Don't hit the API")
+def test_filter_date(pandas_ai: PandasAI):
+    cost_df = pd.DataFrame(
+        {
+            "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
+            "cost": [1, 2, 3, 4, 5, 6],
+        }
+    )
+    filtered_df = pandas_ai(cost_df, prompt="Show me the cost for 2020")
     assert type(filtered_df) == pd.DataFrame
     assert filtered_df.shape == (2, 2)
 
 
 @pytest.mark.skip(reason="Don't hit the API")
 def test_aggregate_rounds(pandas_ai):
-    df = pd.DataFrame(
+    rounds_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
             "round": [1, 1, 2, 2, 3, 3],
         }
     )
-    filtered_df = pandas_ai(df, prompt="How many investments are made in different rounds?")
+    filtered_df = pandas_ai(rounds_df, prompt="How many investments are made in different rounds?")
     assert type(filtered_df) == pd.DataFrame
     assert filtered_df.shape == (3, 2)
     assert filtered_df.columns.tolist() == ["round", "count"]
@@ -35,13 +45,13 @@ def test_aggregate_rounds(pandas_ai):
 
 @pytest.mark.skip(reason="Don't hit the API")
 def test_filter_and_aggregate(pandas_ai):
-    df = pd.DataFrame(
+    rounds_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
             "round": [1, 1, 2, 2, 3, 3],
         }
     )
-    filtered_df = pandas_ai(df, prompt="How many investments are made in different rounds in 2021?")
+    filtered_df = pandas_ai(rounds_df, prompt="How many investments are made in different rounds in 2021?")
     assert type(filtered_df) == pd.DataFrame
     assert filtered_df.shape == (2, 2)
     assert filtered_df.columns.tolist() == ["round", "count"]
@@ -50,7 +60,7 @@ def test_filter_and_aggregate(pandas_ai):
 
 @pytest.mark.skip(reason="Don't hit the API")
 def test_filter_lots_of_columns(pandas_ai):
-    df = pd.DataFrame(
+    fruits_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
             "round": [1, 1, 2, 2, 3, 3],
@@ -65,16 +75,14 @@ def test_filter_lots_of_columns(pandas_ai):
             "mangoes": [1, 2, 3, 4, 5, 6],
         }
     )
-    filtered_df = pandas_ai(df, prompt="Show me bananas by company sorted low to high")
-    print(filtered_df)
+    filtered_df = pandas_ai(fruits_df, prompt="Show me bananas by company sorted low to high")
     assert type(filtered_df) == pd.DataFrame
     assert filtered_df.shape == (4, 2)
-    assert False
 
 
 @pytest.mark.skip(reason="Don't hit the API")
 def test_average_banana(pandas_ai):
-    df = pd.DataFrame(
+    fruits_df = pd.DataFrame(
         {
             "date": ["2020-01-01", "2020-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"],
             "round": [1, 1, 2, 2, 3, 3],
@@ -89,7 +97,7 @@ def test_average_banana(pandas_ai):
             "mangoes": [1, 2, 3, 4, 5, 6],
         }
     )
-    filtered_df = pandas_ai(df, prompt="What is the variance of bananas as a percentage per company?")
+    filtered_df = pandas_ai(fruits_df, prompt="What is the variance of bananas as a percentage per company?")
     print(filtered_df)
     assert type(filtered_df) == pd.DataFrame
     assert filtered_df.shape == (4, 2)
