@@ -3,7 +3,6 @@ import ast
 import io
 import re
 from contextlib import redirect_stdout
-from typing import Optional
 
 import astor
 import matplotlib.pyplot as plt
@@ -17,7 +16,6 @@ from .llm.base import LLM
 from .prompts.correct_error_prompt import CorrectErrorPrompt
 from .prompts.correct_wrong_type_prompt import CorrectWrongTypePrompt
 from .prompts.generate_python_code import GeneratePythonCodePrompt
-from .prompts.generate_response import GenerateResponsePrompt
 
 
 # pylint: disable=too-many-instance-attributes disable=too-many-arguments
@@ -26,7 +24,6 @@ class PandasAI:
 
     _llm: LLM
     _verbose: bool = False
-    _is_conversational_answer: bool = True
     _enforce_privacy: bool = False
     _max_retries: int = 3
     _is_notebook: bool = False
@@ -37,40 +34,28 @@ class PandasAI:
         "num_columns": None,
         "rows_to_display": None,
     }
-    last_code_generated: Optional[str] = None
-    last_run_code: Optional[str] = None
-    code_output: Optional[str] = None
+    last_code_generated: str | None = None
+    last_run_code: str | None = None
+    code_output: pd.DataFrame | None = None
 
-    def __init__(self, llm=None, conversational=True, verbose=False, enforce_privacy=False):
+    def __init__(self, llm: LLM | None = None, verbose: bool = False, enforce_privacy: bool = False):
         if llm is None:
             raise LLMNotFoundError("An LLM should be provided to instantiate a PandasAI instance")
         self._llm = llm
-        self._is_conversational_answer = conversational
         self._verbose = verbose
         self._enforce_privacy = enforce_privacy
 
         self.notebook = Notebook()
         self._in_notebook = self.notebook.in_notebook()
 
-    def conversational_answer(self, question: str, answer: str) -> str:
-        """Return the conversational answer"""
-        if self._enforce_privacy:
-            # we don't want to send potentially sensitive data to the LLM server
-            # if the user has set enforce_privacy to True
-            return answer
-
-        instruction = GenerateResponsePrompt(question=question, answer=answer)
-        return self._llm.call(instruction, "")
-
     def run(
         self,
         data_frame: pd.DataFrame,
         prompt: str,
-        is_conversational_answer: bool = None,
         show_code: bool = False,
         anonymize_df: bool = True,
         use_error_correction_framework: bool = True,
-    ) -> str:
+    ) -> pd.DataFrame:
         """Run the LLM with the given prompt"""
         self.log(f"Running PandasAI with {self._llm.type} LLM...")
 
@@ -113,27 +98,18 @@ Code generated:
         answer = self.run_code(code, data_frame, use_error_correction_framework=use_error_correction_framework)
         self.code_output = answer
         self.log(f"Answer: {answer}")
-
-        if is_conversational_answer is None:
-            is_conversational_answer = self._is_conversational_answer
-        if is_conversational_answer:
-            answer = self.conversational_answer(prompt, answer)
-            self.log(f"Conversational answer: {answer}")
         return answer
 
     def __call__(
         self,
         data_frame: pd.DataFrame,
         prompt: str,
-        is_conversational_answer: bool = None,
         show_code: bool = False,
         anonymize_df: bool = True,
         use_error_correction_framework: bool = True,
     ) -> pd.DataFrame:
         """Run the LLM with the given prompt"""
-        return self.run(
-            data_frame, prompt, is_conversational_answer, show_code, anonymize_df, use_error_correction_framework
-        )
+        return self.run(data_frame, prompt, show_code, anonymize_df, use_error_correction_framework)
 
     def remove_unsafe_imports(self, code: str) -> str:
         """Remove non-whitelisted imports from the code to prevent malicious code execution"""
@@ -143,7 +119,7 @@ Code generated:
             node
             for node in tree.body
             if not (
-                isinstance(node, (ast.Import, ast.ImportFrom))
+                isinstance(node, ast.Import | ast.ImportFrom)
                 and any(alias.name not in WHITELISTED_LIBRARIES for alias in node.names)
             )
         ]
@@ -207,7 +183,7 @@ Code running:
         )
 
         # Redirect standard output to a StringIO buffer
-        with redirect_stdout(io.StringIO()) as output:
+        with redirect_stdout(io.StringIO()):
             count = 0
             while count < self._max_retries:
                 try:
