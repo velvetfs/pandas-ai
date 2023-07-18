@@ -186,7 +186,6 @@ Code generated:
 
         # TODO: avoid iterating over the code twice # pylint: disable=W0511
         code = self.remove_unsafe_imports(code)
-        code = self.remove_df_overwrites(code)
         code = self.remove_plots(code)
         return code
 
