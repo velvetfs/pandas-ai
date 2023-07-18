@@ -58,6 +58,7 @@ class PandasAI:
     ) -> pd.DataFrame:
         """Run the LLM with the given prompt"""
         self.log(f"Running PandasAI with {self._llm.type} LLM...")
+        self._df = data_frame.copy()
 
         rows_to_display = 0 if self._enforce_privacy else 5
 
@@ -95,7 +96,7 @@ Code generated:
         if show_code and self._in_notebook:
             self.notebook.create_new_cell(code)
 
-        answer = self.run_code(code, data_frame, use_error_correction_framework=use_error_correction_framework)
+        answer = self.run_code(code, use_error_correction_framework=use_error_correction_framework)
         self.code_output = answer
         self.log(f"Answer: {answer}")
         return answer
@@ -165,9 +166,7 @@ Code generated:
         code = self.remove_plots(code)
         return code
 
-    def run_code(
-        self, code: str, data_frame: pd.DataFrame, use_error_correction_framework: bool = True
-    ) -> pd.DataFrame:
+    def run_code(self, code: str, use_error_correction_framework: bool = True) -> pd.DataFrame:
         # pylint: disable=W0122 disable=W0123 disable=W0702:bare-except
         """Run the code in the current context and return the result"""
 
@@ -187,8 +186,8 @@ Code running:
             count = 0
             while count < self._max_retries:
                 try:
-                    # Execute the code
                     loc = {}
+                    data_frame = self._df.copy()
                     exec(  # noqa: S102
                         code_to_run,
                         {

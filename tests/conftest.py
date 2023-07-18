@@ -13,4 +13,4 @@ def llm():
 
 @pytest.fixture()
 def pandas_ai(llm):
-    return PandasAI(llm, verbose=True, conversational=False)
+    return PandasAI(llm, verbose=True)
