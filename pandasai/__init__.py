@@ -212,7 +212,7 @@ Code running:
                         last_line,
                         {
                             "pd": pd,
-                            "df": data_frame,
+                            "df": self._df,
                             "__builtins__": {**{builtin: __builtins__[builtin] for builtin in WHITELISTED_BUILTINS}},
                         },
                         loc,
